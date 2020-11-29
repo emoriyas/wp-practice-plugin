@@ -6,32 +6,16 @@
      * Author: Author
      */
 
-    $accepted_tags = array("tag1", "tag3", "tag4");
+    $acceptedTags = array("tag1", "tag3", "tag4");
+    $excludedTags = array("tag2");
+    $acceptedCategories = array("category1", "category2");
+    $excludedCategories = array();
     $html = "<p>Hello World!</p>";
 
-    __initialize();
+    main();
 
-    function __initialize() {
-        add_action( 'the_post', 'wppp_add_html_control');
-    }
-
-    /**
-     * Checks post tags and categories to determine if the post
-     * should be modified.
-     *
-     * @param $post Post object.
-     */
-    function wppp_add_html_control ($post) {
-        global $accepted_tags;
-        $tags = get_the_tags($post->ID);
-
-        foreach ($tags as $tag) {
-            foreach ($accepted_tags as $acceptTag) {
-                if (strcmp($tag->name, $acceptTag->name) == 0) {
-                    add_action( 'the_content', 'wppp_add_html_content');
-                }
-            }
-        }
+    function main() {
+        add_action( 'the_content', 'wpppAddHtmlContent');
     }
 
     /**
@@ -39,7 +23,70 @@
      *
      * @param $content Post content.
      */
-    function wppp_add_html_content ($content) {
-        return $content .= "Hello World!";
+    function wpppAddHtmlContent ($content) {
+        global $post;
+        global $html;
+
+        $writeHtml = checkPostEligibility($post->ID);
+
+        if ($writeHtml) {
+            $content .= $html;
+        }
+
+        return $content;
+    }
+
+    /**
+     * Check post eligibility for HTML content insertion.
+     *
+     * @param $postId Post ID.
+     */
+    function checkPostEligibility($postId) {
+        global $acceptedTags;
+        global $excludedTags;
+        global $acceptedCategories;
+        global $excludedCategories;
+
+        $tags = get_the_tags($postId);
+        $cats = get_the_category($postId);
+
+        // Check for excluded categories.        
+        foreach ($cats as $cat) {
+            foreach ($excludedCategories as $excludeCat) {
+                if (strcmp($cat->name, $excludeCat) == 0) {
+                echo "bbb";
+                    return false;
+                }
+            }
+        }
+        // Check for excluded tags.        
+        foreach ($tags as $tag) {
+            foreach ($excludedTags as $excludeTag) {
+                if (strcmp($tag->name, $excludeTag) == 0) {
+                echo "aaa";
+                    return false;
+                }
+            }
+        }
+
+        // Check for accepted categories.
+        foreach ($cats as $cat) {
+            foreach ($acceptedCategories as $acceptCat) {
+                if (strcmp($cat->name, $acceptCat) == 0) {
+                    return true;
+                }
+            }
+        }
+        // Check for accepted tags.
+        foreach ($tags as $tag) {
+            foreach ($acceptedTags as $acceptTag) {
+                if (strcmp($tag->name, $acceptTag) == 0) {
+                    return true;
+                }
+            }
+        }
+
+        // Return false if there are no matching tags or categories.
+        return false;
     }
 ?>
