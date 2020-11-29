@@ -6,11 +6,24 @@
      * Author: Author
      */
 
+    $active = true;
+
     $acceptedTags = array("tag1", "tag3", "tag4");
     $excludedTags = array("tag2");
     $acceptedCategories = array("category1", "category2");
     $excludedCategories = array();
+
     $html = "<p>Hello World!</p>";
+
+    $insertContentAfter = true;
+    // Either iterate/first/last.
+    $insertConditionType = "iterate";
+    // Should be ignored if variable above is set to first/last.
+    $insertConditionValue = 1;
+
+    $paragraphLimitGreater = true;
+    $paragraphLimitValue = 5;
+    //TODO: add paragraph limit.
 
     main();
 
@@ -24,13 +37,17 @@
      * @param $content Post content.
      */
     function wpppAddHtmlContent ($content) {
+        global $active;
         global $post;
-        global $html;
 
-        $writeHtml = checkPostEligibility($post->ID);
+        if (!$active) {
+            return $content;
+        }
+
+        $writeHtml = wpppCheckPostEligibility($post->ID);
 
         if ($writeHtml) {
-            $content .= $html;
+            return wpppAddHtml($content);
         }
 
         return $content;
@@ -41,7 +58,7 @@
      *
      * @param $postId Post ID.
      */
-    function checkPostEligibility($postId) {
+    function wpppCheckPostEligibility($postId) {
         global $acceptedTags;
         global $excludedTags;
         global $acceptedCategories;
@@ -88,5 +105,35 @@
 
         // Return false if there are no matching tags or categories.
         return false;
+    }
+
+    function wpppAddHtml($content) {
+        global $html;
+        global $insertContentAfter;
+        // Either iterate/first/last.
+        global $insertConditionType;
+        // Should be ignored if variable above is set to first/last.
+        global $insertConditionValue;
+        global $paragraphLimitGreater;
+        global $paragraphLimitValue;
+
+        // Split content by paragraph.
+        $dom = new DOMDocument();
+        $contentArr = array();
+        $dom->loadHTML($content);
+        foreach($dom->getElementsByTagName('p') as $paragraph)
+        {
+            $contentArr[] = $dom->saveHTML($paragraph);
+        }
+        $contentArrLength = count($contentArr);
+
+        // Do not add content if the number of paragraphs are greater than the ceiling limit
+        // or if the number of paragraphs are fewer than the floor limit.
+        if ((($paragraphLimitGreater && ($contentArrLength > $paragraphLimitValue)))
+                || (!$paragraphLimitGreater && ($contentArrLength < $paragraphLimitValue))) {
+            return $content;
+        }
+
+        return $content .= $html;
     }
 ?>
