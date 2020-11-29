@@ -6,7 +6,7 @@
      * Author: Author
      */
 
-    $active = true;
+    $isActive = true;
 
     $acceptedTags = array("tag1", "tag3", "tag4");
     $excludedTags = array("tag2");
@@ -37,10 +37,10 @@
      * @param $content Post content.
      */
     function wpppAddHtmlContent ($content) {
-        global $active;
+        global $isActive;
         global $post;
 
-        if (!$active) {
+        if (!$isActive) {
             return $content;
         }
 
@@ -134,6 +134,27 @@
             return $content;
         }
 
-        return $content .= $html;
+        //insert html bit to content.
+        if (strcmp($insertConditionType, "first") == 0) {
+            if ($insertContentAfter) {
+                array_splice($contentArr, 1, 0, $html);
+            }
+            else {
+                array_splice($contentArr, 0, 0, $html);
+            }
+        }
+        else if (strcmp($insertConditionType, "last") == 0) {
+            if ($insertContentAfter) {
+                array_splice($contentArr, $contentArrLength, 0, $html);
+            }
+            else {
+                array_splice($contentArr, $contentArrLength - 1, 0, $html);
+            }
+        }
+        else {
+            array_splice($contentArr, 1, 0, $html);
+        }
+
+        return implode("", $contentArr);
     }
 ?>
