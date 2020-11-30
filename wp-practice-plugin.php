@@ -8,18 +8,6 @@
      * Author: Author
      */
 
-    $html = "<p>Hello World!</p>";
-
-    $insertContentAfter = true;
-    // Either iterate/first/last.
-    $insertConditionType = "iterate";
-    // Should be ignored if variable above is set to first/last.
-    $insertConditionValue = 1;
-
-    $paragraphLimitGreater = true;
-    $paragraphLimitValue = 5;
-    //TODO: add paragraph limit.
-
     main();
 
     function main() {
@@ -38,13 +26,9 @@
         global $wpdb;
         $tableName = $wpdb->prefix . "wppp_html_entry";
 
-        $queryResult = $wpdb->get_results(
-                "SELECT tags_included, tags_excluded,
-                    categories_included, categories_excluded, is_active
-                FROM $tableName;");
+        $queryResults = $wpdb->get_results("SELECT * FROM $tableName;");
 
-        foreach ($queryResult as $result) {
-
+        foreach ($queryResults as $result) {
             if (!$result->is_active) {
                 return $content;
             }
@@ -58,8 +42,9 @@
                     $tagsExcluded , $categoriesIncluded, $categoriesExcluded);
 
             if ($writeHtml) {
-                $content = wpppAddHtml($content);
-                //return wpppAddHtml($content);
+                $content = wpppAddHtml($content, $result->html, $result->insert_condition_type,
+                        $result->insert_condition_after, $result->insert_condition_value,
+                        $result->paragraph_limit_greater, $result->paragraph_limit_value);
             }
         }
 
@@ -119,15 +104,11 @@
         return false;
     }
 
-    function wpppAddHtml($content) {
-        global $html;
-        global $insertContentAfter;
-        // Either iterate/first/last.
-        global $insertConditionType;
-        // Should be ignored if variable above is set to first/last.
-        global $insertConditionValue;
-        global $paragraphLimitGreater;
-        global $paragraphLimitValue;
+    function wpppAddHtml($content, $html, $insertConditionType, $insertContentAfter,
+            $insertConditionValue, $paragraphLimitGreater, $paragraphLimitValue) {
+
+        //global $paragraphLimitGreater;
+        //global $paragraphLimitValue;
 
         // Split content by paragraph.
         $dom = new DOMDocument();
@@ -141,6 +122,7 @@
 
         // Do not add content if the number of paragraphs are greater than the ceiling limit
         // or if the number of paragraphs are fewer than the floor limit.
+        // TODO: While it works right now, add checks where one or both variables are null.
         if ((($paragraphLimitGreater && ($contentArrLength > $paragraphLimitValue)))
                 || (!$paragraphLimitGreater && ($contentArrLength < $paragraphLimitValue))) {
             return $content;
@@ -163,8 +145,21 @@
                 array_splice($contentArr, $contentArrLength - 1, 0, $html);
             }
         }
-        else {
-            array_splice($contentArr, 1, 0, $html);
+        else if ($insertConditionValue > 0) {
+            // defaults to iterate if $insertConditionValue defined but $insertConditionType
+            // is not "first" or "last".
+            // TODO: Does not insert if the number of paragraphs match $insertConditionValue.
+            for ($x = $insertConditionValue;
+                    $x < $contentArrLength; $x = ($x + $insertConditionValue + 1)) {
+                if ($insertContentAfter) {
+                    array_splice($contentArr, $x, 0, $html);
+                    $contentArrLength++;
+                }
+                else {
+                    array_splice($contentArr, $x - 1, 0, $html);
+                    $contentArrLength++;
+                }
+            }
         }
 
         return implode("", $contentArr);

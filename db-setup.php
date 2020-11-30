@@ -17,6 +17,9 @@
                 tags_excluded VARCHAR(255),
                 categories_included VARCHAR(255),
                 categories_excluded VARCHAR(255),
+                insert_condition_type VARCHAR(255),
+                insert_condition_after BOOLEAN,
+                insert_condition_value int,
                 is_active BOOLEAN) $charset_collate;";
         dbDelta( $sql );
     }
