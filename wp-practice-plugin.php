@@ -1,17 +1,12 @@
 <?php
+    include "db-setup.php";
+
     /**
      * Plugin Name: Practice Plugin
      * Description: This is a plugin
      * Version: 1.0
      * Author: Author
      */
-
-    $isActive = true;
-
-    $acceptedTags = array("tag1", "tag3", "tag4");
-    $excludedTags = array("tag2");
-    $acceptedCategories = array("category1", "category2");
-    $excludedCategories = array();
 
     $html = "<p>Hello World!</p>";
 
@@ -29,6 +24,7 @@
 
     function main() {
         add_action( 'the_content', 'wpppAddHtmlContent');
+        register_activation_hook( __FILE__, 'wpppDbSetUp' );
     }
 
     /**
@@ -39,15 +35,32 @@
     function wpppAddHtmlContent ($content) {
         global $isActive;
         global $post;
+        global $wpdb;
+        $tableName = $wpdb->prefix . "wppp_html_entry";
 
-        if (!$isActive) {
-            return $content;
-        }
+        $queryResult = $wpdb->get_results(
+                "SELECT tags_included, tags_excluded,
+                    categories_included, categories_excluded, is_active
+                FROM $tableName;");
 
-        $writeHtml = wpppCheckPostEligibility($post->ID);
+        foreach ($queryResult as $result) {
 
-        if ($writeHtml) {
-            return wpppAddHtml($content);
+            if (!$result->is_active) {
+                return $content;
+            }
+
+            $tagsIncluded = $result->tags_included;
+            $tagsExcluded = $result->tags_excluded;
+            $categoriesIncluded = $result->categories_included;
+            $categoriesExcluded = $result->categories_excluded;
+
+            $writeHtml = wpppCheckPostEligibility($post->ID, $tagsIncluded,
+                    $tagsExcluded , $categoriesIncluded, $categoriesExcluded);
+
+            if ($writeHtml) {
+                $content = wpppAddHtml($content);
+                //return wpppAddHtml($content);
+            }
         }
 
         return $content;
@@ -58,46 +71,45 @@
      *
      * @param $postId Post ID.
      */
-    function wpppCheckPostEligibility($postId) {
-        global $acceptedTags;
-        global $excludedTags;
-        global $acceptedCategories;
-        global $excludedCategories;
+    function wpppCheckPostEligibility($postId, $tagsIncluded,
+            $tagsExcluded , $categoriesIncluded, $categoriesExcluded) {
 
         $tags = get_the_tags($postId);
         $cats = get_the_category($postId);
 
-        // Check for excluded categories.        
+        // Check for excluded categories.
+        $excludedCategories = explode(",", $categoriesExcluded);
         foreach ($cats as $cat) {
             foreach ($excludedCategories as $excludeCat) {
-                if (strcmp($cat->name, $excludeCat) == 0) {
-                echo "bbb";
+                if (strcmp($cat->name, trim($excludeCat)) == 0) {
                     return false;
                 }
             }
         }
-        // Check for excluded tags.        
+        // Check for excluded tags.
+        $excludedTags = explode(",", $tagsExcluded);
         foreach ($tags as $tag) {
             foreach ($excludedTags as $excludeTag) {
-                if (strcmp($tag->name, $excludeTag) == 0) {
-                echo "aaa";
+                if (strcmp($tag->name, trim($excludeTag)) == 0) {
                     return false;
                 }
             }
         }
 
         // Check for accepted categories.
+        $acceptedCategories = explode(",", $categoriesIncluded);
         foreach ($cats as $cat) {
             foreach ($acceptedCategories as $acceptCat) {
-                if (strcmp($cat->name, $acceptCat) == 0) {
+                if (strcmp($cat->name, trim($acceptCat)) == 0) {
                     return true;
                 }
             }
         }
         // Check for accepted tags.
+        $acceptedTags = explode(",", $tagsIncluded);
         foreach ($tags as $tag) {
             foreach ($acceptedTags as $acceptTag) {
-                if (strcmp($tag->name, $acceptTag) == 0) {
+                if (strcmp($tag->name, trim($acceptTag)) == 0) {
                     return true;
                 }
             }
