@@ -1,5 +1,6 @@
 <?php
     include "db-setup.php";
+    include "option-page.php";
 
     /**
      * Plugin Name: Practice Plugin
@@ -13,6 +14,10 @@
     function main() {
         add_action( 'the_content', 'wpppAddHtmlContent');
         register_activation_hook( __FILE__, 'wpppDbSetUp' );
+        if (is_admin()) {
+            add_action( 'admin_menu', 'wpppAdminMenu' );
+            add_action('admin_post_wppp_add_entry', 'wppp_add_html_entry');
+        }
     }
 
     /**
@@ -38,6 +43,7 @@
             $categoriesIncluded = $result->categories_included;
             $categoriesExcluded = $result->categories_excluded;
 
+            // Check if a post is eligible for HTML entry
             $writeHtml = wpppCheckPostEligibility($post->ID, $tagsIncluded,
                     $tagsExcluded , $categoriesIncluded, $categoriesExcluded);
 
@@ -58,11 +64,11 @@
      */
     function wpppCheckPostEligibility($postId, $tagsIncluded,
             $tagsExcluded , $categoriesIncluded, $categoriesExcluded) {
-
         $tags = get_the_tags($postId);
         $cats = get_the_category($postId);
 
         // Check for excluded categories.
+        // TODO: use a built in PHP function for matching values.
         $excludedCategories = explode(",", $categoriesExcluded);
         foreach ($cats as $cat) {
             foreach ($excludedCategories as $excludeCat) {
@@ -104,11 +110,11 @@
         return false;
     }
 
+    /**
+     * Adds HTML content
+     */
     function wpppAddHtml($content, $html, $insertConditionType, $insertContentAfter,
             $insertConditionValue, $paragraphLimitGreater, $paragraphLimitValue) {
-
-        //global $paragraphLimitGreater;
-        //global $paragraphLimitValue;
 
         // Split content by paragraph.
         $dom = new DOMDocument();

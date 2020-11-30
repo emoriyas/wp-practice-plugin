@@ -1,8 +1,9 @@
 <?php
     /**
-     *
+     * Create database table for html entry function.
      */
     function wpppDbSetUp() {
+    status_header(200);
         global $wpdb;
         $charset_collate = $wpdb->get_charset_collate();
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
